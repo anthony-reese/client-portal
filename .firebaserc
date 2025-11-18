@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "client-portal-generator-d3314",
+    "staging": "client-portal-generator-d3314"
+  },
+  "targets": {},
+  "etags": {}
+}

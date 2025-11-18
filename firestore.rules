@@ -1,0 +1,46 @@
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isProjectClient(projectId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/projects/$(projectId)).data.clientEmail
+          == request.auth.token.email;
+    }
+
+    // --- Projects Collection ---
+    match /projects/{projectId} {
+      // Admins can read/write all projects
+      // Clients can read *their own* project
+      allow read: if isAdmin() ||
+        (isSignedIn() &&
+         resource.data.clientEmail == request.auth.token.email);
+
+      // Only admins can write or modify projects
+      allow write: if isAdmin();
+
+      // --- Files Subcollection ---
+      match /files/{fileId} {
+        // Admins or project client can read files metadata
+        allow read: if isAdmin() || isProjectClient(projectId);
+
+        // Only admins can create, update, delete file metadata
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    // --- Users Collection (optional self-service) ---
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+  }
+}
