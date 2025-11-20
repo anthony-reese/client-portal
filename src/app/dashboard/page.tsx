@@ -16,7 +16,7 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db, app } from "@/lib/firebase";
+import { db, app, auth } from "@/lib/firebase";
 import ProjectList from "@/components/ProjectList";
 import CreateProjectForm from "@/components/CreateProjectForm";
 import AdminProjectFiles from "@/components/AdminProjectFiles";
