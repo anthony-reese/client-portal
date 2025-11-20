@@ -3,3 +3,4 @@ firebase.json
 firestore.rules
 storage.rules
 .firebaserc
+scripts/
