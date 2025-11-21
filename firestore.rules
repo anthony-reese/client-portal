@@ -1,7 +1,12 @@
 // firestore.rules
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    /* ------------------------------------------
+     * Helper Functions
+     * ------------------------------------------ */
 
     function isSignedIn() {
       return request.auth != null;
@@ -11,36 +16,58 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
+    // A project client is whoever matches the project's clientEmail field
     function isProjectClient(projectId) {
       return isSignedIn() &&
         get(/databases/$(database)/documents/projects/$(projectId)).data.clientEmail
           == request.auth.token.email;
     }
 
-    // --- Projects Collection ---
+
+    /* ------------------------------------------
+     * Project Documents (projects/{projectId})
+     * ------------------------------------------ */
+
     match /projects/{projectId} {
-      // Admins can read/write all projects
-      // Clients can read *their own* project
-      allow read: if isAdmin() ||
-        (isSignedIn() &&
-         resource.data.clientEmail == request.auth.token.email);
 
-      // Only admins can write or modify projects
-      allow write: if isAdmin();
+      // Allow admin or project client to read the project document
+      allow read: if isAdmin() || isProjectClient(projectId);
 
-      // --- Files Subcollection ---
+      // Only admins can create, update, delete projects
+      allow create, update, delete: if isAdmin();
+
+      /* ------------------------------------------
+       * Files Subcollection (projects/{projectId}/files/{fileId})
+       * ------------------------------------------ */
       match /files/{fileId} {
-        // Admins or project client can read files metadata
+
+        // Admin or project client can read file metadata
         allow read: if isAdmin() || isProjectClient(projectId);
 
-        // Only admins can create, update, delete file metadata
+        // Only admins can create, update, or delete file metadata
         allow create, update, delete: if isAdmin();
       }
     }
 
-    // --- Users Collection (optional self-service) ---
+
+    /* ------------------------------------------
+     * Users Collection (optional)
+     * users/{uid}
+     * For storing per-user data visible only to that user.
+     * ------------------------------------------ */
+
     match /users/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
+
+
+    /* ------------------------------------------
+     * Default Deny-All Rule (security hardening)
+     * ------------------------------------------ */
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+
   }
 }
