@@ -32,7 +32,10 @@ export default function LoginPage() {
         handleCodeInApp: true,
       };
 
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      await sendSignInLinkToEmail(auth, email, {
+              url: "https://client-portal-beige-seven.vercel.app/portal",
+              handleCodeInApp: true,
+            });
       window.localStorage.setItem("emailForSignIn", email);
       setMessage("✅ Login link sent! Check your inbox.");
     } catch (err: any) {

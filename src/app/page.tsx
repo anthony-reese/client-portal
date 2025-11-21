@@ -4,25 +4,19 @@ import { useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
+import Link from "next/link";
+
 export default function Home() {
-  useEffect(() => {
-    async function testFirestore() {
-      try {
-        const snapshot = await getDocs(collection(db, "users"));
-        snapshot.forEach((doc) => {
-          console.log("✅ Firestore doc:", doc.id, doc.data());
-        });
-      } catch (error) {
-        console.error("❌ Firestore test failed:", error);
-      }
-    }
-
-    testFirestore();
-  }, []);
-
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-800">
-      <h1 className="text-2xl font-semibold">Client Portal Generator 🔥</h1>
-    </main>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-3xl font-bold mb-6">Client Portal Generator 🔥</h1>
+      
+      <Link
+        href="/login"
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        Go to Login
+      </Link>
+    </div>
   );
 }
