@@ -13,7 +13,7 @@ import {
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
-// Disable prerendering / static optimization
+// VERY IMPORTANT: prevent prerender so useSearchParams works
 export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
@@ -24,9 +24,9 @@ export default function LoginPage() {
   );
 }
 
-// ----------------------------------------------------
-// Client Component: handles all login logic
-// ----------------------------------------------------
+// ---------------------------------------------
+// Actual login component (client-only)
+// ---------------------------------------------
 function LoginClient() {
   const auth = getAuth(app);
   const router = useRouter();
@@ -35,16 +35,13 @@ function LoginClient() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  // ----------------------------------------------------
-  // Handle Magic Link Return
-  // ----------------------------------------------------
+  // Handle magic link return
   useEffect(() => {
     const url = window.location.href;
 
     if (!isSignInWithEmailLink(auth, url)) return;
 
     let storedEmail = window.localStorage.getItem("emailForSignIn");
-
     if (!storedEmail) {
       storedEmail = window.prompt("Please confirm your email for sign-in") || "";
     }
@@ -76,11 +73,9 @@ function LoginClient() {
     };
 
     finishSignIn();
-  }, []); // IMPORTANT: no params in dependency array
+  }, []); // no params here
 
-  // ----------------------------------------------------
-  // Send Magic Link
-  // ----------------------------------------------------
+  // Send magic link
   const sendLink = async () => {
     if (!email) return setMessage("Enter an email");
 
@@ -100,9 +95,6 @@ function LoginClient() {
     }
   };
 
-  // ----------------------------------------------------
-  // UI
-  // ----------------------------------------------------
   return (
     <div className="flex flex-col items-center justify-center h-screen px-4">
       <h1 className="text-3xl font-bold mb-6">Login to Client Portal</h1>
