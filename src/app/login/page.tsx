@@ -1,6 +1,7 @@
 // src/app/login/page.tsx
 "use client";
 
+// Prevent Next.js from attempting to prerender this page (uses client-side hooks)
 export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
