@@ -1,5 +1,9 @@
+// src/app/login/page.tsx
 "use client";
 
+export const dynamic = "force-dynamic";
+
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -11,7 +15,6 @@ import {
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
-export const dynamic = "force-dynamic";
 export default function LoginPage() {
   const auth = getAuth(app);
   const params = useSearchParams();
@@ -79,24 +82,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen px-4">
-      <h1 className="text-3xl font-bold mb-6">Login to Client Portal</h1>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="flex flex-col items-center justify-center h-screen px-4">
+        <h1 className="text-3xl font-bold mb-6">Login to Client Portal</h1>
 
-      <input
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        className="border px-3 py-2 mb-3 rounded text-black w-64"
-      />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="border px-3 py-2 mb-3 rounded text-black w-64"
+        />
 
-      <button
-        onClick={sendLink}
-        className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-700"
-      >
-        Send Magic Link
-      </button>
+        <button
+          onClick={sendLink}
+          className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-700"
+        >
+          Send Magic Link
+        </button>
 
-      {message && <p className="mt-4 text-center">{message}</p>}
-    </div>
+        {message && <p className="mt-4 text-center">{message}</p>}
+      </div>
+    </Suspense>
   );
 }
