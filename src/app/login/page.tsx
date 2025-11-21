@@ -52,27 +52,40 @@ export default function LoginPage() {
     }
   };
 
-  // Handle email link when clicked
   useEffect(() => {
     const finishSignIn = async () => {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        let storedEmail = window.localStorage.getItem("emailForSignIn");
-        if (!storedEmail) {
-          storedEmail = window.prompt("Please confirm your email for sign-in");
-        }
-        try {
-          await signInWithEmailLink(auth, storedEmail!, window.location.href);
-          window.localStorage.removeItem("emailForSignIn");
-          setMessage("🎉 Sign-in successful! Redirecting…");
-          setTimeout(() => (window.location.href = "/portal"), 1000);
-        } catch (err: any) {
-          console.error("Sign-in error:", err);
-          setMessage("❌ Invalid or expired link. Please try again.");
-        }
+      const url = window.location.href;
+
+      // Only process if this is an email sign-in link
+      if (!isSignInWithEmailLink(auth, url)) return;
+
+      // Retrieve stored email or prompt
+      let email = window.localStorage.getItem("emailForSignIn");
+      if (!email) {
+        email = window.prompt("Please confirm your email for sign-in") || "";
+      }
+
+      try {
+        await signInWithEmailLink(auth, email, url);
+
+        // Cleanup
+        window.localStorage.removeItem("emailForSignIn");
+
+        setMessage("🎉 Sign-in successful! Redirecting…");
+
+        // Redirect to portal after sign-in is fully completed
+        setTimeout(() => {
+          window.location.href = "/portal";
+        }, 800);
+      } catch (err: any) {
+        console.error("Sign-in error:", err);
+        setMessage("❌ Invalid or expired link. Please try again.");
       }
     };
+
     finishSignIn();
-  }, [auth]);
+  }, []);
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white">
