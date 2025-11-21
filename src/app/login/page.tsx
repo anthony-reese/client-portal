@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -13,6 +11,7 @@ import {
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
+export const dynamic = "force-dynamic";
 export default function LoginPage() {
   const auth = getAuth(app);
   const params = useSearchParams();
