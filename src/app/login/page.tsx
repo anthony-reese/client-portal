@@ -1,24 +1,25 @@
-// src/app/login/page.tsx
+"use client";
 
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getAuth,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
+  getIdTokenResult,
 } from "firebase/auth";
-import { app } from "@/lib/firebase"; // adjust if your firebase.ts path differs
+import { app } from "@/lib/firebase";
 
 export default function LoginPage() {
   const auth = getAuth(app);
+  const params = useSearchParams();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  // -------------------------------
-  // STEP 1 — Handle magic link return
-  // -------------------------------
   useEffect(() => {
     const url = window.location.href;
 
@@ -27,22 +28,29 @@ export default function LoginPage() {
     let storedEmail = window.localStorage.getItem("emailForSignIn");
 
     if (!storedEmail) {
-      storedEmail =
-        window.prompt("Please confirm your email for sign-in") || "";
+      storedEmail = window.prompt("Please confirm your email for sign-in") || "";
+    }
+
+    if (!storedEmail) {
+      setMessage("❌ No email provided. Try again.");
+      return;
     }
 
     const complete = async () => {
       try {
         await signInWithEmailLink(auth, storedEmail!, url);
-
         window.localStorage.removeItem("emailForSignIn");
 
         setMessage("🎉 Sign-in successful! Redirecting…");
 
-        // Redirect to DASHBOARD after login
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 600);
+        const user = getAuth(app).currentUser;
+        const token = user ? await getIdTokenResult(user, true) : null;
+
+        const explicit = params.get("redirect");
+        const defaultTarget = token?.claims?.admin ? "/dashboard" : "/portal";
+        const target = explicit || defaultTarget;
+
+        router.replace(target);
       } catch (err) {
         console.error("Sign-in error:", err);
         setMessage("❌ Invalid or expired link. Try again.");
@@ -50,12 +58,8 @@ export default function LoginPage() {
     };
 
     complete();
-  }, []);
+  }, []); // IMPORTANT: no params in dependencies
 
-
-  // -------------------------------
-  // STEP 2 — Send Magic Link
-  // -------------------------------
   const sendLink = async () => {
     if (!email) return setMessage("Enter an email");
 
@@ -68,7 +72,6 @@ export default function LoginPage() {
       });
 
       window.localStorage.setItem("emailForSignIn", email);
-
       setMessage("✨ Magic link sent! Check your email.");
     } catch (err) {
       console.error("Link send error:", err);
@@ -76,10 +79,6 @@ export default function LoginPage() {
     }
   };
 
-
-  // -------------------------------
-  // UI
-  // -------------------------------
   return (
     <div className="flex flex-col items-center justify-center h-screen px-4">
       <h1 className="text-3xl font-bold mb-6">Login to Client Portal</h1>

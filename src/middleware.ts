@@ -1,35 +1,21 @@
 // src/middleware.ts
-export const runtime = "nodejs";
+import { NextRequest, NextResponse } from "next/server";
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { auth } from "@/lib/firebaseAdmin";
+export function middleware(req: NextRequest) {
+  const url = req.nextUrl;
 
-export async function middleware(req: NextRequest) {
-  const session = req.cookies.get("session")?.value;
-  const url = req.nextUrl.clone();
+  // Firebase passwordless sign-in uses these query params.
+  const isMagicLink = 
+    url.searchParams.get("mode") === "signIn" || url.searchParams.has("oobCode");
 
-  if (!session) {
-    if (url.pathname.startsWith("/dashboard")) {
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
+  // Do NOT rewrite or redirect when magic link parameters exist.
+  if (url.pathname === "/login" && isMagicLink) {
     return NextResponse.next();
   }
 
-  try {
-    const decoded = await auth.verifySessionCookie(session, true);
-    if (decoded.admin) {
-      return NextResponse.next(); // Admin access
-    }
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  } catch {
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/login"],
 };
