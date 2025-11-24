@@ -3,46 +3,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onIdTokenChanged } from "firebase/auth";
+import { getAuth, getIdTokenResult } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
+type Role = "admin" | "client" | "unknown";
+
 export function useUserRole() {
-  const [email, setEmail] = useState<string | null>(null);
-  const [role, setRole] = useState<"admin" | "client" | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+  const [role, setRole] = useState<Role>("unknown");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getAuth(app);
 
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
+    const run = async () => {
+      const user = auth.currentUser;
       if (!user) {
-        setEmail(null);
-        setRole(null);
-        setLastRefresh(null);
+        setRole("unknown");
         setLoading(false);
         return;
       }
 
-      const tokenResult = await user.getIdTokenResult();
-      setEmail(user.email || "");
-      setRole(tokenResult.claims.admin ? "admin" : "client");
-
-      // Parse expiration time into a readable format
-      const exp = tokenResult.expirationTime;
-      if (exp) {
-        const localTime = new Date(exp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        setLastRefresh(localTime);
+      try {
+        const token = await getIdTokenResult(user, true);
+        setRole(token.claims.admin ? "admin" : "client");
+      } catch (err) {
+        console.error("Role check error", err);
+        setRole("unknown");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    run();
   }, []);
 
-  return { email, role, lastRefresh, loading };
+  return { role, loading };
 }

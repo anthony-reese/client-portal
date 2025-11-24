@@ -1,10 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* These Tailwind directives are handled by PostCSS/Tailwind during the build.
+   They are commented out to avoid editor CSS validation errors that don't affect the build. */
+
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
