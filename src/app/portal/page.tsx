@@ -17,6 +17,7 @@ import {
 import { app } from "@/lib/firebase";
 import PortalFileUploader from "@/components/PortalFileUploader";
 import toast, { Toaster } from "react-hot-toast";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,13 @@ export default function PortalPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <Toaster />
+
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Portal" },
+        ]}
+      />
 
       <h1 className="text-3xl font-bold mb-6">Client Portal</h1>
 

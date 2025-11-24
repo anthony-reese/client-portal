@@ -14,6 +14,8 @@ import {
 import { app } from "@/lib/firebase";
 import AppHeader from "@/components/AppHeader";
 import AdminProjectFiles from "@/components/AdminProjectFiles";
+import toast, { Toaster } from "react-hot-toast";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,7 @@ export default function AdminPage() {
       } catch (err) {
         console.error(err);
         setError("Failed to load projects");
+        toast.error("Failed to load projects");
       } finally {
         setLoading(false);
       }
@@ -69,9 +72,16 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-50">
+      <Toaster />
       <AppHeader />
 
       <main className="max-w-5xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[2fr,3fr] gap-6">
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Admin" },
+          ]}
+        />
         <section>
           <h1 className="text-2xl font-bold mb-4">Projects</h1>
 

@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { app } from "@/lib/firebase";
+import toast, { Toaster } from "react-hot-toast";
 
 interface Props {
   projectId: string;
@@ -80,6 +81,10 @@ export default function AdminProjectFiles({ projectId }: Props) {
         reviewedAt: new Date(),
       });
 
+      toast.success(
+        nextStatus === "approved" ? "File approved" : "Marked as pending"
+      );
+
       setFiles((prev) =>
         prev.map((f) =>
           f.id === file.id ? { ...f, status: nextStatus } : f
@@ -88,6 +93,7 @@ export default function AdminProjectFiles({ projectId }: Props) {
     } catch (err) {
       console.error(err);
       setError("Failed to update approval status");
+      toast.error("Could not update file status");
     } finally {
       setSavingId(null);
     }
@@ -99,6 +105,21 @@ export default function AdminProjectFiles({ projectId }: Props) {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm text-gray-300">{files.length} file(s)</span>
+        {files.length > 0 && (
+          <button
+            onClick={() => {
+              files.forEach((f) => {
+                window.open(f.url, "_blank");
+              });
+            }}
+            className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs"
+          >
+            Download all
+          </button>
+        )}
+      </div>
       {files.map((file) => (
         <div
           key={file.id}
