@@ -1,5 +1,3 @@
-// src/app/portal/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,9 +11,12 @@ import {
   getDocs,
   getFirestore,
   query,
-  where
+  where,
+  orderBy,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase";
+import PortalFileUploader from "@/components/PortalFileUploader";
+import toast, { Toaster } from "react-hot-toast";
 
 export const dynamic = "force-dynamic";
 
@@ -24,114 +25,161 @@ export default function PortalPage() {
   const db = getFirestore(app);
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [files, setFiles] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
+  // -------------------------------
+  // Load client projects
+  // -------------------------------
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+      if (!user) return router.replace("/login");
 
       try {
-        await loadClientProjects(user.email!);
+        const q = query(
+          collection(db, "projects"),
+          where("clientEmail", "==", user.email)
+        );
+
+        const snap = await getDocs(q);
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        setProjects(rows);
+
+        if (rows.length === 1) {
+          // auto-select if only 1 project
+          setSelectedProjectId(rows[0].id);
+        }
       } catch (err) {
         console.error(err);
-        setError("Could not load your projects");
+        toast.error("Failed to load your projects.");
       } finally {
-        setLoading(false);
+        setLoadingProjects(false);
       }
     });
 
     return () => unsub();
   }, []);
 
-  // Load projects where clientEmail = user
-  const loadClientProjects = async (email: string) => {
-    const q = query(
-      collection(db, "projects"),
-      where("clientEmail", "==", email)
-    );
-    const snap = await getDocs(q);
-    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    setProjects(rows);
+  // -------------------------------
+  // Load files for selected project
+  // -------------------------------
+  const loadFiles = async (projectId: string) => {
+    setLoadingFiles(true);
+    try {
+      const ref = collection(db, "projects", projectId, "files");
+      const q = query(ref, orderBy("uploadedAt", "desc"));
+      const snap = await getDocs(q);
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setFiles(rows);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load project files.");
+    } finally {
+      setLoadingFiles(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-lg">
-        Loading your client portal…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen text-red-400">
-        {error}
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (selectedProjectId) loadFiles(selectedProjectId);
+  }, [selectedProjectId]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Your Client Portal</h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <Toaster />
 
-      {projects.length === 0 && (
-        <p className="text-gray-400">No projects are assigned to this account.</p>
-      )}
+      <h1 className="text-3xl font-bold mb-6">Client Portal</h1>
 
-      <ul className="space-y-4">
-        {projects.map((proj) => (
-          <li
-            key={proj.id}
-            className="border border-gray-700 rounded p-4 bg-gray-900"
-          >
-            <h2 className="text-xl font-semibold">{proj.name}</h2>
-            <p className="text-sm text-gray-400">
-              {proj.description ?? "No description"}
-            </p>
+      {/* ---------------------- */}
+      {/* Project Selector */}
+      {/* ---------------------- */}
+      <section className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Your Projects</h2>
 
-            <h3 className="mt-3 text-lg font-semibold">Files</h3>
-            {proj.files?.length === 0 && (
-              <p className="text-gray-500">No files uploaded yet.</p>
-            )}
+        {loadingProjects && <p>Loading…</p>}
 
-            <ul className="mt-2 space-y-2">
-              {proj.files?.map((f: any) => (
-                <li
-                  key={f.id}
-                  className="bg-gray-800 p-2 rounded border border-gray-600"
-                >
+        {!loadingProjects && projects.length === 0 && (
+          <p className="text-gray-400">No projects assigned to this account.</p>
+        )}
+
+        <ul className="space-y-2">
+          {projects.map((p) => (
+            <li
+              key={p.id}
+              onClick={() => setSelectedProjectId(p.id)}
+              className={`p-3 rounded border cursor-pointer ${
+                selectedProjectId === p.id
+                  ? "border-blue-500 bg-gray-900"
+                  : "border-gray-800 bg-gray-900/60 hover:border-gray-700"
+              }`}
+            >
+              {p.name || "Untitled Project"}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ---------------------- */}
+      {/* Status Legend */}
+      {/* ---------------------- */}
+      <div className="flex gap-4 mb-4 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 bg-green-600 rounded-full"></span> Approved
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 bg-yellow-500 rounded-full"></span> Pending
+        </div>
+      </div>
+
+      {/* ---------------------- */}
+      {/* Files + Upload */}
+      {/* ---------------------- */}
+      {selectedProjectId && (
+        <section className="mt-4">
+          <h2 className="text-xl font-semibold mb-3">Files</h2>
+
+          <PortalFileUploader projectId={selectedProjectId} />
+
+          {loadingFiles && <p className="mt-3">Loading files…</p>}
+
+          {!loadingFiles && files.length === 0 && (
+            <p className="mt-3 text-gray-400">No files uploaded yet.</p>
+          )}
+
+          <ul className="mt-3 space-y-3">
+            {files.map((f) => (
+              <li
+                key={f.id}
+                className="p-3 border border-gray-800 rounded bg-gray-900 flex justify-between items-center"
+              >
+                <div>
                   <a
                     href={f.url}
                     target="_blank"
-                    className="underline text-blue-400"
+                    className="underline text-blue-400 font-semibold"
                   >
                     {f.name}
                   </a>
+                  <p className="text-xs text-gray-400">
+                    {(f.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
 
-                  <span className="ml-3 text-sm text-gray-400">
-                    ({Math.round(f.size / 1024)} KB)
-                  </span>
-
-                  <span
-                    className={`ml-4 px-2 py-1 rounded text-xs ${
-                      f.status === "approved"
-                        ? "bg-green-700"
-                        : "bg-yellow-600"
-                    }`}
-                  >
-                    {f.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
+                <span
+                  className={`px-2 py-1 rounded text-xs ${
+                    f.status === "approved" ? "bg-green-700" : "bg-yellow-700"
+                  }`}
+                >
+                  {f.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

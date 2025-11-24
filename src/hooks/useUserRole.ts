@@ -1,5 +1,3 @@
-// src/hooks/useUserRole.ts
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,33 +7,48 @@ import { app } from "@/lib/firebase";
 type Role = "admin" | "client" | "unknown";
 
 export function useUserRole() {
+  const auth = getAuth(app);
+
   const [role, setRole] = useState<Role>("unknown");
+  const [email, setEmail] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = getAuth(app);
+    const user = auth.currentUser;
 
-    const run = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        setRole("unknown");
-        setLoading(false);
-        return;
-      }
+    if (!user) {
+      setRole("unknown");
+      setEmail(null);
+      setLastRefresh(null);
+      setLoading(false);
+      return;
+    }
 
+    const loadToken = async () => {
       try {
-        const token = await getIdTokenResult(user, true);
-        setRole(token.claims.admin ? "admin" : "client");
+        const tokenResult = await getIdTokenResult(user, true); // force refresh
+
+        setEmail(user.email ?? null);
+        setRole(tokenResult.claims.admin ? "admin" : "client");
+
+        const ts = new Date();
+        setLastRefresh(ts.toLocaleTimeString());
       } catch (err) {
-        console.error("Role check error", err);
+        console.error("Error loading role:", err);
         setRole("unknown");
       } finally {
         setLoading(false);
       }
     };
 
-    run();
+    loadToken();
   }, []);
 
-  return { role, loading };
+  return {
+    email,
+    role,
+    lastRefresh,
+    loading,
+  };
 }
